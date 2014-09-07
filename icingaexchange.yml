@@ -1,0 +1,19 @@
+name: check_disk_btrfs
+description: "file:///README.md"
+url: "https://www.netways.org/projects/plugins"
+tags: ~
+vendor: Netways
+target: Temperature
+type: Plugin
+license: gplv2
+releases: 
+  - 
+    name: 1.0
+    description: "1.0 Release"
+    files: 
+      - 
+        name: check_disk_btrfs.pl
+        url: "file:///check_disk_btrfs.pl"
+        description: none
+        checksum: 
+

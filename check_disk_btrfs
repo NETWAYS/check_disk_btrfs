@@ -1,0 +1,283 @@
+#!/usr/bin/perl
+
+=pod
+
+=head1 COPYRIGHT
+
+This software is Copyright (c) 2013 NETWAYS GmbH, Michael Friedrich
+                               <support@netways.de>
+
+(Except where explicitly superseded by other copyright notices)
+
+=head1 LICENSE
+
+This work is made available to you under the terms of Version 2 of
+the GNU General Public License. A copy of that license should have
+been provided with this software, but in any event can be snarfed
+from http://www.fsf.org.
+
+This work is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+02110-1301 or visit their web page on the internet at
+http://www.fsf.org.
+
+
+CONTRIBUTION SUBMISSION POLICY:
+
+(The following paragraph is not intended to limit the rights granted
+to you to modify and distribute this software under the terms of
+the GNU General Public License and is only of importance to you if
+you choose to contribute your changes and enhancements to the
+community by submitting them to NETWAYS GmbH.)
+
+By intentionally submitting any modifications, corrections or
+derivatives to this work, or any other work intended for use with
+this Software, to NETWAYS GmbH, you confirm that
+you are the copyright holder for those contributions and you grant
+NETWAYS GmbH a nonexclusive, worldwide, irrevocable,
+royalty-free, perpetual, license to use, copy, create derivative
+works based on those contributions, and sublicense and distribute
+those contributions and any derivatives thereof.
+
+Nagios and the Nagios logo are registered trademarks of Ethan Galstad.
+
+=head1 NAME
+
+check_disk_btrfs - check btrfs formatted filesystems and its special attributes
+
+=head1 SYNOPSIS
+
+check_disk_btrfs -f <filesystem> [-h|-v] [-w <warn_threshold in %> -c <crit_threshold in %>]
+
+Check BTRFS formatted filesystems and its special attributes.
+
+Requires sudo permissions for the icinga/nagios user executing btrfs command.
+
+Important: Only permit filesystem df /*, and no other manipulation options!!!
+
+icinga ALL=(ALL) NOPASSWD: /usr/sbin/btrfs filesystem df /*
+
+=head1 OPTIONS
+
+=over
+
+=item -f|--filesystem
+
+btrfs filesystem to check (e.g. /)
+
+=item -w|--warning
+
+warning threshold in percent (global)
+
+=item -c|--critical
+
+critical threshold in percent (global)
+
+=item -h|--help
+
+print help page
+
+=item -v|--verbose
+
+print verbose output
+
+=cut
+
+# includes
+use warnings;
+
+use Getopt::Long qw(:config no_ignore_case bundling);
+use Pod::Usage;
+
+our $opt;
+GetOptions (
+	"f|filesystem=s"	=> \$opt->{filesystem},
+	"w|warning=i"		=> \$opt->{threshold_warn},
+	"c|critical=i"		=> \$opt->{threshold_crit},
+	"t|timeout=i"		=> \$opt->{timeout},
+	"h|help"        	=> \$opt->{help},
+	"v|verbose"      	=> \$opt->{verbose}
+);
+
+pod2usage(1) if defined $opt->{help};
+
+# some definitions
+my %STATE = (
+	'OK' => 0,
+	'WARNING' => 1,
+	'CRITICAL' => 2,
+	'UNKNOWN' => 3
+);
+
+# # /sbin/btrfs filesystem df /
+#Data: total=30.01GB, used=21.75GB
+#System, DUP: total=40.00MB, used=12.00KB
+#System: total=4.00MB, used=0.00
+#Metadata, RAID1: total=3.47GB, used=2.00GB
+#Metadata, DUP: total=1.25GB, used=225.57MB
+#Metadata: total=8.00MB, used=0.00
+
+my @btrfs_attr = (
+	'Data',
+	'System, DUP',
+	'System',
+	'Metadata, RAID1',
+	'Metadata, DUP',
+	'Metadata'
+);
+
+# getopts
+my $fs = "/"; # a default
+my $global_warn_perc = 80;
+my $global_crit_perc = 90;
+my $timeout = 30;
+
+if (defined($opt->{filesystem})) {
+	$fs = $opt->{filesystem};
+}
+if (defined($opt->{threshold_warn})) {
+	$global_warn_perc = $opt->{threshold_warn};
+}
+if (defined($opt->{threshold_crit})) {
+	$global_crit_perc = $opt->{threshold_crit};
+}
+if (defined($opt->{timeout})) {
+	$timeout = $opt->{timeout};
+}
+
+# set timeout alarm
+$SIG{'ALRM'}=sub {
+	print("Timeout ($timeout) reached.\n");
+	exit $STATE{"UNKNOWN"};
+};
+
+# start timeout alarm
+alarm($timeout);
+
+# require sudo for full output
+my $cmd = "sudo /sbin/btrfs filesystem df $fs";
+my @cmdoutput = `$cmd`;
+my $ret = $?;
+
+# handle btrfs errors with unknown
+if ($ret > 0) {
+	exit $STATE{"UNKNOWN"};
+};
+	
+
+# parse the output
+# it's a mix of kb,mb,gb, etc 
+
+my @perfdata;
+my @ok;
+my @unknown;
+my @warn;
+my @crit;
+
+foreach my $line (@cmdoutput) {
+	foreach my $attr (@btrfs_attr) {
+		if ($line =~ /$attr/) {
+			$line =~ s/$attr: //;
+			my ($total, $used) = split / +/, $line;
+			$total =~ s/total=//;
+			$total =~ s/[,]$//;
+			$used =~ s/used=//;
+			chomp $total;
+			chomp $used;
+
+			$total_bytes = convertStrtoByte($total);
+			$used_bytes = convertStrtoByte($used);
+
+			my $used_perc = $used_bytes / $total_bytes * 100;
+
+			my $attr_str = $attr;
+			my $used_perc_str = $used_perc;
+			$attr_str =~ s/ //; #perfdata safety
+			$attr_str =~ s/,/_/;
+			$attr_str = lc $attr_str;
+			$used_perc_str = sprintf("%.2f", $used_perc);
+			my $out = "\"$attr\" $used_perc_str% used ($used/$total)";
+			my $perf = "$attr_str"."_used=$used_bytes;$global_warn_perc;$global_crit_perc;; "."$attr_str"."_total=$total_bytes;$global_warn_perc;$global_crit_perc;;";
+			
+			# thresholds - XXX enhance them for all levels
+			if ($used_perc > $global_crit_perc) {
+				push @crit, $out;
+			}
+			elsif ($used_perc > $global_warn_perc) {
+				push @warn, $out;
+			}
+			elsif ($used_perc < $global_warn_perc && $used_perc < $global_crit_perc) {
+				push @ok, $out;
+			}
+			# save perfdata for each element
+			push @perfdata, $perf;
+		}	
+	}
+}
+
+# generate output, perfdata, exit state
+my $out_prefix;
+my $perf_str = join " ", @perfdata;
+my $out_str;
+my $exit_code = $STATE{'OK'};
+
+if (@unknown > 0 && @crit == 0 && @warn == 0) {
+	$out_prefix = "UNKNOWN: btrfs ";
+	$exit_code = $STATE{'UNKNOWN'};
+	if (@ok > 0) {
+		$out_str .= " OK: " . join ", ", @ok;
+	}
+}
+elsif (@warn > 0 && @crit == 0) {
+	$out_prefix = "WARNING: btrfs ";
+	$exit_code = $STATE{'WARNING'};
+	$out_str = $out_prefix . join ", ", @warn;
+	if (@ok > 0) {
+		$out_str .= " OK: " . join ", ", @ok;
+	}
+}
+elsif (@crit > 0) {
+	$out_prefix = "CRITCAL: btrfs ";
+	$exit_code = $STATE{'CRITICAL'};
+	$out_str = $out_prefix . join ", ", @crit;
+	if (@warn > 0) {
+		$out_str .= " WARNING: " . join ", ", @warn;
+	}
+	if (@ok > 0) {
+		$out_str .= " OK: " . join ", ", @ok;
+	}
+}
+else {
+	$out_prefix = "OK: btrfs ";
+	$exit_code = $STATE{'OK'};
+	$out_str = $out_prefix . join ", ", @ok;
+}
+
+print "$out_str | $perf_str\n";
+exit($exit_code);
+
+
+sub convertStrtoByte {
+	my $str = shift;
+	my $val = $str;
+	$val =~ s/[KMGT]B//;
+	if ($str =~ /TB/) {
+		$val = $val * 1024 * 1024 * 1024 * 1024;
+	}
+	elsif ($str =~ /GB/) {
+		$val = $val * 1024 * 1024 * 1024;
+	}
+	elsif ($str =~ /MB/) {
+		$val = $val * 1024 * 1024;
+	}
+	elsif ($str =~ /KB/) {
+		$val = $val * 1024;
+	}
+	return sprintf("%d", $val);
+}
