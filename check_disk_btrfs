@@ -4,7 +4,7 @@
 
 =head1 COPYRIGHT
 
-This software is Copyright (c) 2013 NETWAYS GmbH, Michael Friedrich
+This software is Copyright (c) 2013-2015 NETWAYS GmbH, Michael Friedrich
                                <support@netways.de>
 
 (Except where explicitly superseded by other copyright notices)
@@ -45,8 +45,6 @@ royalty-free, perpetual, license to use, copy, create derivative
 works based on those contributions, and sublicense and distribute
 those contributions and any derivatives thereof.
 
-Nagios and the Nagios logo are registered trademarks of Ethan Galstad.
-
 =head1 NAME
 
 check_disk_btrfs - check btrfs formatted filesystems and its special attributes
@@ -57,7 +55,7 @@ check_disk_btrfs -f <filesystem> [-h|-v] [-w <warn_threshold in %> -c <crit_thre
 
 Check BTRFS formatted filesystems and its special attributes.
 
-Requires sudo permissions for the icinga/nagios user executing btrfs command.
+Requires sudo permissions for the icinga user executing btrfs command.
 
 Important: Only permit filesystem df /*, and no other manipulation options!!!
 
@@ -116,20 +114,21 @@ my %STATE = (
 );
 
 # # /sbin/btrfs filesystem df /
-#Data: total=30.01GB, used=21.75GB
-#System, DUP: total=40.00MB, used=12.00KB
-#System: total=4.00MB, used=0.00
-#Metadata, RAID1: total=3.47GB, used=2.00GB
-#Metadata, DUP: total=1.25GB, used=225.57MB
-#Metadata: total=8.00MB, used=0.00
+# changed output: additional 'single' and GB->GiB
+#Data, single: total=12.33GiB, used=4.84GiB
+#System, DUP: total=8.00MiB, used=4.00KiB
+#System, single: total=4.00MiB, used=0.00
+#Metadata, DUP: total=724.75MiB, used=164.13MiB
+#Metadata, single: total=8.00MiB, used=0.00
+
 
 my @btrfs_attr = (
-	'Data',
+	'Data, single',
 	'System, DUP',
-	'System',
+	'System, single',
 	'Metadata, RAID1',
 	'Metadata, DUP',
-	'Metadata'
+	'Metadata, single'
 );
 
 # getopts
@@ -266,17 +265,19 @@ exit($exit_code);
 sub convertStrtoByte {
 	my $str = shift;
 	my $val = $str;
+	# support old (GB) and new (GiB) output parsing
 	$val =~ s/[KMGT]B//;
-	if ($str =~ /TB/) {
+	$val =~ s/[KMGT]iB//;
+	if ($str =~ /TB/ || $str =~ /TiB/) {
 		$val = $val * 1024 * 1024 * 1024 * 1024;
 	}
-	elsif ($str =~ /GB/) {
+	elsif ($str =~ /GB/ || $str =~ /GiB/) {
 		$val = $val * 1024 * 1024 * 1024;
 	}
-	elsif ($str =~ /MB/) {
+	elsif ($str =~ /MB/ || $str =~ /MiB/) {
 		$val = $val * 1024 * 1024;
 	}
-	elsif ($str =~ /KB/) {
+	elsif ($str =~ /KB/ || $str =~ /KiB/) {
 		$val = $val * 1024;
 	}
 	return sprintf("%d", $val);
