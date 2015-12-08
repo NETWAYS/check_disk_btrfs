@@ -47,13 +47,15 @@ those contributions and any derivatives thereof.
 
 =head1 NAME
 
-check_disk_btrfs - check btrfs formatted filesystems and its special attributes
+check_disk_btrfs - check btrfs formatted filesystems (DEPRECATED)
 
 =head1 SYNOPSIS
 
 check_disk_btrfs -f <filesystem> [-h|-v] [-w <warn_threshold in %> -c <crit_threshold in %>]
 
 Check BTRFS formatted filesystems and its special attributes.
+
+NOTE: This plugin is DEPRECATED.
 
 Requires sudo permissions for the icinga user executing btrfs command.
 
