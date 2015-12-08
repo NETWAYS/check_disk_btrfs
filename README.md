@@ -1,36 +1,37 @@
 check_disk_brtfs
 ================
- 
+
 Check BTRFS formatted filesystems and its special attributes.
 
 Requires sudo permissions for the icinga/nagios user executing btrfs
-command.
+command. If you are running the plugin with sudo permissions already,
+set `--sudo=0` as command line parameter.
 
-Important: Only permit `filesystem df /*`, and no other manipulation
-options!!!
+    icinga ALL=(ALL) NOPASSWD: /usr/sbin/btrfs filesystem df *
 
-    icinga ALL=(ALL) NOPASSWD: /usr/sbin/btrfs filesystem df /*
-
-    
 ### Usage
 
-    check_disk_btrfs -f <filesystem> [-h|-v] [-w <warn_threshold in %> -c
-    <crit_threshold in %>]
+    usage: check_disk_btrfs [-h] [-S SUDO] [-t TIMEOUT] [-w THRESHOLD_WARNING]
+                            [-c THRESHOLD_CRITICAL] [-V VOLUME] [-v]
+
+    check_disk_btrfs (Version: 2.0.0)
+
+    optional arguments:
+      -h, --help            show this help message and exit
+      -S SUDO, --sudo SUDO  use sudo
+      -t TIMEOUT, --timeout TIMEOUT
+                            plugin timeout
+      -w THRESHOLD_WARNING, --threshold-warning THRESHOLD_WARNING
+                            warning threshold in percent
+      -c THRESHOLD_CRITICAL, --threshold-critical THRESHOLD_CRITICAL
+                            critical threshold in percent
+      -V VOLUME, --volume VOLUME
+                            btrfs volume
+      -v, --verbose         increase output verbosity
 
 
-Options:
+Example:
 
-    -f|--filesystem
-        btrfs filesystem to check (e.g. /)
+    check_disk_btrfs -V / -w 30 -c 40
 
-    -w|--warning
-        warning threshold in percent (global)
-
-    -c|--critical
-        critical threshold in percent (global)
-
-    -h|--help
-        print help page
-
-    -v|--verbose
-        print verbose output
+    CRITICAL: 'Data, single': 47.59051% used (0.0GB/2.0GB) OK: 'System, single': 0.39063% used (0.0MB/4.0MB), 'GlobalReserve, single': 0.0% used (0.0MB/16.0MB), 'Metadata, single': 16.41809% used (43.0MB/264.0MB) | data_single_used=1025990656;30;40;; data_single_total=2155872256;30;40;; system_single_used=16384;30;40;; system_single_total=4194304;30;40;; globalreserve_single_used=0;30;40;; globalreserve_single_total=16777216;30;40;; metadata_single_used=45449216;30;40;; metadata_single_total=276824064;30;40;;
