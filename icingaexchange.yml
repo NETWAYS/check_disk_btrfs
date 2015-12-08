@@ -8,12 +8,12 @@ type: Plugin
 license: gplv2
 releases: 
   - 
-    name: 1.0
-    description: "1.0 Release"
+    name: 2.0
+    description: "2.0 Release"
     files: 
       - 
         name: check_disk_btrfs
         url: "file:///check_disk_btrfs"
-        description: none
-        checksum: e6416d244a65afc62c2f23cd03c8f188
+        description: Python implementation
+        checksum: ba7d3615d6fa559381f3201813a5a5e5
 
