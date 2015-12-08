@@ -1,0 +1,230 @@
+#!/usr/bin/env python
+# COPYRIGHT:
+#
+# This software is Copyright (c) 2015 NETWAYS GmbH, Michael Friedrich
+#                                <support@netways.de>
+#
+# (Except where explicitly superseded by other copyright notices)
+#
+# LICENSE:
+#
+# Copyright (C) 2015 NETWAYS GmbH <support@netways.de>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+# or see <http://www.gnu.org/licenses/>.
+#
+# CONTRIBUTION SUBMISSION POLICY:
+#
+# (The following paragraph is not intended to limit the rights granted
+# to you to modify and distribute this software under the terms of
+# the GNU General Public License and is only of importance to you if
+# you choose to contribute your changes and enhancements to the
+# community by submitting them to NETWAYS GmbH.)
+#
+# By intentionally submitting any modifications, corrections or
+# derivatives to this work, or any other work intended for use with
+# this Software, to NETWAYS GmbH, you confirm that
+# you are the copyright holder for those contributions and you grant
+# NETWAYS GmbH a nonexclusive, worldwide, irrevocable,
+# royalty-free, perpetual, license to use, copy, create derivative
+# works based on those contributions, and sublicense and distribute
+# those contributions and any derivatives thereof.
+
+import sys
+import pipes
+import traceback
+import os
+import time
+import re
+from signal import signal, alarm, SIGALRM
+from subprocess import Popen, PIPE
+from argparse import ArgumentParser
+
+VERSION = '2.0.0'
+sudo_path = "/usr/bin/sudo"
+btrfs_path = "/usr/sbin/btrfs"
+verbose = True
+
+class BtrfsCommandError(Exception):
+    pass
+
+def _alarm_handler(signum, frame):
+    raise BtrfsCommandError('Timeout occurred.')
+
+def run_cmd(btrfs_vol, timeout, use_sudo):
+	if not btrfs_vol:
+		btrfs_vol = "/"
+
+	cmd = []
+
+	if use_sudo == 1:
+		cmd += [ sudo_path ]
+
+	cmd += [ btrfs_path, 'filesystem', 'df', '-b', btrfs_vol ] # -b (raw)
+
+	if verbose:
+		print " ".join(cmd)
+
+	# setup timeout
+	signal(SIGALRM, _alarm_handler)
+	alarm(timeout)
+
+	p = Popen(cmd, stdout=PIPE, stderr=PIPE)
+
+	try:
+		stdout_data, stderr_data = p.communicate()
+	except BtrfsCommandError:
+        # Terminate the process
+		process.kill()
+
+        # Re-throw the exception
+		raise sys.exc_info()[1], None, sys.exc_info()[2]
+
+    # results in unknown error status
+	if p.returncode != 0:
+		raise RuntimeError("%r failed, status code %s stdout %r stderr %r" % (
+                       		cmd, p.returncode, stdout_data, stderr_data))
+
+    # disable timeout
+	alarm(0)
+
+	return stdout_data.splitlines()
+
+def parse_output(output):
+	values = {}
+
+	for line in output:
+		m = re.match("(\w+,\s\w+):\s+total=(\d+),\s+used=(\d+)", line)
+
+		if not m:
+ 			continue
+
+		label = m.groups(0)[0]
+		total = m.groups(0)[1]
+		used = m.groups(0)[2]
+
+		if verbose:
+			print "Label: %s, Total: %s, Used: %s" % (label, total, used)
+
+		values[label] = (total, used)
+
+	return values
+
+def find_hr_bytes(total, used):
+	val = total
+	byte_c = 0
+	hr_label = "B"
+
+	while val > 1024:
+		val = float(val) / 1024
+		byte_c += 1
+
+	if byte_c == 1:
+		hr_label = "KB"
+	elif byte_c == 2:
+		hr_label = "MB"
+	elif byte_c == 3:
+		hr_label = "GB"
+	elif byte_c == 4:
+		hr_label = "TB"
+	elif byte_c == 5:
+		hr_label = "PB"
+
+	hr_total = round(int(total) / 1024 ** int(byte_c), 5)
+	hr_used = round(int(used) / 1024 ** int(byte_c), 5)
+
+	return hr_label, hr_total, hr_used
+
+def main():
+	arg_parser = ArgumentParser(description= "check_disk_btrfs (Version: %s)" % (VERSION))
+	arg_parser.add_argument('-S', '--sudo', help="use sudo", default=1)
+	arg_parser.add_argument('-t', '--timeout', type=int, help="plugin timeout", default=30)
+	arg_parser.add_argument('-w', '--threshold-warning', type=int, default=80, help="warning threshold in percent")
+	arg_parser.add_argument('-c', '--threshold-critical', type=int, default=90, help="critical threshold in percent")
+	arg_parser.add_argument('-V', '--volume', default='/', help="btrfs volume") #TODO support multiple volumes
+	arg_parser.add_argument("-v", "--verbose", action="store_true", help="increase output verbosity")
+	args = arg_parser.parse_args(sys.argv[1:])
+
+	global verbose
+	verbose = args.verbose
+
+	output = run_cmd(args.volume, args.timeout, args.sudo)
+	values = parse_output(output)
+
+	ok = []
+	warn = []
+	crit = []
+	perfdata = []
+
+	for label in values:
+		(total, used) = values[label]
+
+		if float(total) == 0:
+			continue
+
+		used_perc = round(float(used) / float(total) * 100, 5)
+
+		hr_label, hr_total, hr_used = find_hr_bytes(total, used)
+
+		out = "'%s': %s%% used (%s%s/%s%s)" % (label, used_perc, hr_used, hr_label, hr_total, hr_label)
+		perf_label = label.lower().replace(" ", "_").replace(",", "")
+		perf = "%s_used=%s;%s;%s;; %s_total=%s;%s;%s;;" % (perf_label, used, args.threshold_warning, args.threshold_critical, perf_label, total, args.threshold_warning, args.threshold_critical)
+
+		if used_perc > args.threshold_critical:
+			crit.append(out)
+		elif used_perc > args.threshold_warning:
+			warn.append(out)
+		elif used_perc < args.threshold_critical and used_perc < args.threshold_warning:
+			ok.append(out)
+
+		perfdata.append(perf)
+
+	out_str = "UNKNOWN"
+	exit_code = 3
+
+	if len(warn) > 0 and len(crit) == 0:
+		out_str = "WARNING: %s" % (", ".join(warn))
+		exit_code = 1
+
+		if len(ok) > 0:
+			out_str += " OK: %s" % (", ".join(ok))
+	elif len(crit) > 0:
+		out_str = "CRITICAL: %s" % (", ".join(crit))
+		exit_code = 2
+
+		if len(warn) > 0:
+			out_str += " WARNING: %s" % (", ".join(warn))
+		if len(ok) > 0:
+			out_str += " OK: %s" % (", ".join(ok))
+	else:
+		out_str = "OK: %s" % (", ".join(ok))
+		exit_code = 0
+
+	print "%s | %s" % (out_str, " ".join(perfdata))
+	return exit_code
+
+if __name__ == '__main__':
+    try:
+        sys.exit(main())
+    except SystemExit:
+        # Re-throw the exception
+        raise sys.exc_info()[1], None, sys.exc_info()[2]
+    except:
+        print "UNKNOWN - Error: %s" % (str(sys.exc_info()[1]))
+        if verbose:
+            traceback.print_tb(sys.exc_info()[2])
+        sys.exit(3)
+
+# vim: ts=4 sw=4 noet
