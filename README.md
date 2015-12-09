@@ -35,3 +35,34 @@ Example:
     check_disk_btrfs -V / -w 30 -c 40
 
     CRITICAL: 'Data, single': 47.59051% used (0.0GB/2.0GB) OK: 'System, single': 0.39063% used (0.0MB/4.0MB), 'GlobalReserve, single': 0.0% used (0.0MB/16.0MB), 'Metadata, single': 16.41809% used (43.0MB/264.0MB) | data_single_used=1025990656;30;40;; data_single_total=2155872256;30;40;; system_single_used=16384;30;40;; system_single_total=4194304;30;40;; globalreserve_single_used=0;30;40;; globalreserve_single_total=16777216;30;40;; metadata_single_used=45449216;30;40;; metadata_single_total=276824064;30;40;;
+
+### Icinga 2 Integration
+
+Example CheckCommand, Host and Service objects:
+
+    object CheckCommand "disk_btrfs" {
+            import "plugin-check-command"
+    
+            command = [ PluginDir + "/check_disk_btrfs" ]
+    
+            arguments = {
+                    "-V" = "$disk_btrfs_volume$"
+                    "-w" = "$disk_btrfs_warn$"
+                    "-c" = "$disk_btrfs_crit$"
+                    "-s" = "$disk_btrfs_sudo$"
+            }
+    }
+    
+    object Host "btrfs-host" {
+            address = "127.0.0.1"
+            check_command = "hostalive"
+    }
+    
+    apply Service "disk /" {
+            check_command = "disk_btrfs"
+            vars.disk_btrfs_volume = "/"
+            vars.disk_btrfs_warn = 30
+            vars.disk_btrfs_crit = 40
+    
+            assign where match("btrfs*", host.name)
+    }
