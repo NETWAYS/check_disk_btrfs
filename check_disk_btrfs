@@ -52,7 +52,7 @@ from signal import signal, alarm, SIGALRM
 from subprocess import Popen, PIPE
 from argparse import ArgumentParser
 
-VERSION = '2.1.0'
+VERSION = '2.1.1'
 sudo_path = "/usr/bin/sudo"
 btrfs_path = "/usr/sbin/btrfs"
 verbose = True
