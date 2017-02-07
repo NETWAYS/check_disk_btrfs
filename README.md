@@ -18,7 +18,7 @@ usage: check_disk_btrfs [-h] [-S SUDO] [-t TIMEOUT] [-U UNALLOCATED]
                         [-w THRESHOLD_WARNING] [-c THRESHOLD_CRITICAL]
                         [-V VOLUME] [-v]
 
-check_disk_btrfs_usage (Version: 2.1.0)
+check_disk_btrfs (Version: 2.1.0)
 
 optional arguments:
   -h, --help            show this help message and exit

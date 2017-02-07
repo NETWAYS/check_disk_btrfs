@@ -159,7 +159,7 @@ def find_hr_bytes(total, used):
 	return hr_label, hr_total, hr_used
 
 def main():
-	arg_parser = ArgumentParser(description= "check_disk_btrfs_usage (Version: %s)" % (VERSION))
+	arg_parser = ArgumentParser(description= "check_disk_btrfs (Version: %s)" % (VERSION))
 	arg_parser.add_argument('-S', '--sudo', help="use sudo", default=1)
 	arg_parser.add_argument('-t', '--timeout', type=int, help="plugin timeout", default=30)
 	arg_parser.add_argument('-U', '--unallocated', help="consider unallocated blocks by using overall size as total", default=1)
