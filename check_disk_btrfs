@@ -162,7 +162,7 @@ def main():
 	arg_parser = ArgumentParser(description= "check_disk_btrfs_usage (Version: %s)" % (VERSION))
 	arg_parser.add_argument('-S', '--sudo', help="use sudo", default=1)
 	arg_parser.add_argument('-t', '--timeout', type=int, help="plugin timeout", default=30)
-	arg_parser.add_argument('-U', '--unallocated', help="consider unallocated blocks by using overall size as total", default=1) 
+	arg_parser.add_argument('-U', '--unallocated', help="consider unallocated blocks by using overall size as total", default=1)
 	arg_parser.add_argument('-w', '--threshold-warning', type=int, default=80, help="warning threshold in percent")
 	arg_parser.add_argument('-c', '--threshold-critical', type=int, default=90, help="critical threshold in percent")
 	arg_parser.add_argument('-V', '--volume', default='/', help="btrfs volume") #TODO support multiple volumes
@@ -188,9 +188,9 @@ def main():
 
 		if float(total) == 0:
 			continue
-		
+
 		# if we want to consider unallocated blocks, we have to set total to overall size
-		try:	
+		try:
 			total = size_overall
 		except NameError:
 			pass
