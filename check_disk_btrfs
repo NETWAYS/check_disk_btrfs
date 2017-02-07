@@ -52,7 +52,7 @@ from signal import signal, alarm, SIGALRM
 from subprocess import Popen, PIPE
 from argparse import ArgumentParser
 
-VERSION = '2.0.0'
+VERSION = '2.1.0'
 sudo_path = "/usr/bin/sudo"
 btrfs_path = "/usr/sbin/btrfs"
 verbose = True
@@ -72,7 +72,7 @@ def run_cmd(btrfs_vol, timeout, use_sudo):
 	if use_sudo == 1:
 		cmd += [ sudo_path ]
 
-	cmd += [ btrfs_path, 'filesystem', 'df', '-b', btrfs_vol ] # -b (raw)
+	cmd += [ btrfs_path, 'filesystem', 'usage', '-b', btrfs_vol ] # -b (raw)
 
 	if verbose:
 		print " ".join(cmd)
@@ -102,11 +102,22 @@ def run_cmd(btrfs_vol, timeout, use_sudo):
 
 	return stdout_data.splitlines()
 
+def get_size_overall(output):
+	values = {}
+
+	for line in output:
+		m = re.match("\s+(Device\ size):\s+(\d+)", line)
+
+		if not m:
+ 			continue
+
+		return m.groups(0)[1]
+
 def parse_output(output):
 	values = {}
 
 	for line in output:
-		m = re.match("(\w+,\s\w+):\s+total=(\d+),\s+used=(\d+)", line)
+		m = re.match("(\w+,\w+):\s+Size:(\d+),\s+Used:(\d+)", line)
 
 		if not m:
  			continue
@@ -148,9 +159,10 @@ def find_hr_bytes(total, used):
 	return hr_label, hr_total, hr_used
 
 def main():
-	arg_parser = ArgumentParser(description= "check_disk_btrfs (Version: %s)" % (VERSION))
+	arg_parser = ArgumentParser(description= "check_disk_btrfs_usage (Version: %s)" % (VERSION))
 	arg_parser.add_argument('-S', '--sudo', help="use sudo", default=1)
 	arg_parser.add_argument('-t', '--timeout', type=int, help="plugin timeout", default=30)
+	arg_parser.add_argument('-U', '--unallocated', help="consider unallocated blocks by using overall size as total", default=1) 
 	arg_parser.add_argument('-w', '--threshold-warning', type=int, default=80, help="warning threshold in percent")
 	arg_parser.add_argument('-c', '--threshold-critical', type=int, default=90, help="critical threshold in percent")
 	arg_parser.add_argument('-V', '--volume', default='/', help="btrfs volume") #TODO support multiple volumes
@@ -161,6 +173,9 @@ def main():
 	verbose = args.verbose
 
 	output = run_cmd(args.volume, args.timeout, args.sudo)
+	if args.unallocated == 1:
+		size_overall = get_size_overall(output)
+
 	values = parse_output(output)
 
 	ok = []
@@ -173,6 +188,12 @@ def main():
 
 		if float(total) == 0:
 			continue
+		
+		# if we want to consider unallocated blocks, we have to set total to overall size
+		try:	
+			total = size_overall
+		except NameError:
+			pass
 
 		used_perc = round(float(used) / float(total) * 100, 5)
 

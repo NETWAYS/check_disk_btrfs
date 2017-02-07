@@ -7,28 +7,31 @@ Requires sudo permissions for the icinga/nagios user executing btrfs
 command. If you are running the plugin with sudo permissions already,
 set `--sudo=0` as command line parameter.
 
-    icinga ALL=(ALL) NOPASSWD: /usr/sbin/btrfs filesystem df *
+    icinga ALL=(ALL) NOPASSWD: /usr/sbin/btrfs filesystem status *
 
 ### Usage
 
-    usage: check_disk_btrfs [-h] [-S SUDO] [-t TIMEOUT] [-w THRESHOLD_WARNING]
-                            [-c THRESHOLD_CRITICAL] [-V VOLUME] [-v]
+usage: check_disk_btrfs [-h] [-S SUDO] [-t TIMEOUT] [-U UNALLOCATED]
+                        [-w THRESHOLD_WARNING] [-c THRESHOLD_CRITICAL]
+                        [-V VOLUME] [-v]
 
-    check_disk_btrfs (Version: 2.0.0)
+check_disk_btrfs_usage (Version: 2.1.0)
 
-    optional arguments:
-      -h, --help            show this help message and exit
-      -S SUDO, --sudo SUDO  use sudo
-      -t TIMEOUT, --timeout TIMEOUT
-                            plugin timeout
-      -w THRESHOLD_WARNING, --threshold-warning THRESHOLD_WARNING
-                            warning threshold in percent
-      -c THRESHOLD_CRITICAL, --threshold-critical THRESHOLD_CRITICAL
-                            critical threshold in percent
-      -V VOLUME, --volume VOLUME
-                            btrfs volume
-      -v, --verbose         increase output verbosity
-
+optional arguments:
+  -h, --help            show this help message and exit
+  -S SUDO, --sudo SUDO  use sudo
+  -t TIMEOUT, --timeout TIMEOUT
+                        plugin timeout
+  -U UNALLOCATED, --unallocated UNALLOCATED
+                        consider unallocated blocks by using overall size as
+                        total
+  -w THRESHOLD_WARNING, --threshold-warning THRESHOLD_WARNING
+                        warning threshold in percent
+  -c THRESHOLD_CRITICAL, --threshold-critical THRESHOLD_CRITICAL
+                        critical threshold in percent
+  -V VOLUME, --volume VOLUME
+                        btrfs volume
+  -v, --verbose         increase output verbosity
 
 Example:
 
