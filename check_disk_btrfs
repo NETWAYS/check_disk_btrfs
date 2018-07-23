@@ -53,8 +53,8 @@ from subprocess import Popen, PIPE
 from argparse import ArgumentParser
 
 VERSION = '2.1.1'
-sudo_path = "/usr/bin/sudo"
-btrfs_path = "/usr/sbin/btrfs"
+sudo_path = os.environ.get('SUDO', "/usr/bin/sudo")
+btrfs_path = os.environ.get('BTRFS', "/usr/sbin/btrfs")
 verbose = True
 
 class BtrfsCommandError(Exception):
