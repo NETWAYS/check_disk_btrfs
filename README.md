@@ -8,7 +8,7 @@ command. If you are running the plugin with sudo permissions already,
 set `--sudo=0` as command line parameter.
 
 ```
-icinga ALL=(ALL) NOPASSWD: /usr/sbin/btrfs filesystem status *
+icinga ALL=(ALL) NOPASSWD: /usr/sbin/btrfs filesystem usage *
 ```
 
 ### Usage
