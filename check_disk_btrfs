@@ -85,7 +85,7 @@ def run_cmd(btrfs_vol, timeout, use_sudo):
         stdout_data, stderr_data = p.communicate()
     except BtrfsCommandError:
         # Terminate the process
-        process.kill()
+        p.kill()
         # Re-throw the exception
         raise sys.exc_info()[1].with_traceback(sys.exc_info()[2])
 
@@ -100,10 +100,8 @@ def run_cmd(btrfs_vol, timeout, use_sudo):
     return stdout_data.decode('utf-8').splitlines()
 
 def get_size_overall(output):
-    values = {}
-
     for line in output:
-        m = re.match("\s+(Device\ size):\s+(\d+)", line)
+        m = re.match(r"\s+(Device\ size):\s+(\d+)", line)
 
         if not m:
             continue
@@ -114,7 +112,7 @@ def parse_output(output):
     values = {}
 
     for line in output:
-        m = re.match("(\w+,\w+):\s+Size:(\d+),\s+Used:(\d+)", line)
+        m = re.match(r"(\w+,\w+):\s+Size:(\d+),\s+Used:(\d+)", line)
 
         if not m:
             continue
