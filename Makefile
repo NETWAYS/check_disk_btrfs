@@ -3,4 +3,4 @@
 lint:
 	python -m pylint check_disk_btrfs
 test:
-	python -m unittest -v
+	python -m unittest -v -b
