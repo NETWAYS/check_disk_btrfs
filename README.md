@@ -3,12 +3,25 @@ check_disk_brtfs
 
 Check BTRFS formatted filesystems and its special attributes.
 
+### Setup
+
+Requires Python 3 to be installed. Version v2.1.1 is the last `check_disk_btrfs` version running on Python 2.
+
 Requires sudo permissions for the icinga/nagios user executing btrfs
 command. If you are running the plugin with sudo permissions already,
 set `--sudo=0` as command line parameter.
 
 ```
 icinga ALL=(ALL) NOPASSWD: /usr/sbin/btrfs filesystem usage *
+```
+
+Requires the `btrfs-tools` packages to be installed (the package name may change depending on the distribution).
+
+Path to the `sudo` and `btrfs` binaries can be adjusted using Environment Variables:
+
+```
+SUDO=/usr/bin/sudo
+BTRFS=/usr/sbin/btrfs
 ```
 
 ### Usage
@@ -18,7 +31,7 @@ usage: check_disk_btrfs [-h] [-S SUDO] [-t TIMEOUT] [-U UNALLOCATED]
                         [-w THRESHOLD_WARNING] [-c THRESHOLD_CRITICAL]
                         [-V VOLUME] [-v]
 
-check_disk_btrfs (Version: 2.1.0)
+check_disk_btrfs (Version: 3.0.0)
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -78,4 +91,3 @@ apply Service "disk /" {
         assign where match("btrfs*", host.name)
 }
 ```
-
