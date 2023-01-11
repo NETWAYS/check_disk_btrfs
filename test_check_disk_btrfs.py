@@ -35,6 +35,22 @@ Unallocated:
    /dev/sdb	8564768768
 """.splitlines()
 
+testdata_device = """
+Label: none  uuid: fdbb50c2-f155-4ef5-9ae8-c3ec57e2bcfd
+	Total devices 2 FS bytes used 128.00KiB
+	devid    1 size 1022.00MiB used 220.00MiB path /dev/nbd0p1
+	devid    2 size 1022.00MiB used 208.00MiB path /dev/nbd1p1
+
+""".splitlines()
+
+testdata_device_missing = """
+Label: none  uuid: fdbb50c2-f155-4ef5-9ae8-c3ec57e2bcfd
+	Total devices 2 FS bytes used 128.00KiB
+	devid    1 size 1022.00MiB used 220.00MiB path /dev/nbd0p1
+	*** Some devices missing
+
+""".splitlines()
+
 class Testing(unittest.TestCase):
 
     def test_get_size_overall(self):
@@ -51,6 +67,14 @@ class Testing(unittest.TestCase):
         actual = btrfs.find_hr_bytes('8388608', '262144')
         expected = ('MB', 8.0, 0.25)
         self.assertEqual(actual, expected)
+
+    def test_no_missing_device(self):
+        actual = btrfs.parse_missing(testdata_device)
+        self.assertFalse(actual)
+
+    def test_missing_device(self):
+        actual = btrfs.parse_missing(testdata_device_missing)
+        self.assertTrue(actual)
 
 if __name__ == '__main__':
     unittest.main()
