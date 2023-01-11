@@ -48,6 +48,8 @@ optional arguments:
   -V VOLUME, --volume VOLUME
                         btrfs volume
   -v, --verbose         increase output verbosity
+  -m, --missing         check for missing device in RAID array
+  -e, --error           check for errors in scrub result
 ```
 
 Example:
@@ -74,6 +76,8 @@ object CheckCommand "disk_btrfs" {
                 "-c" = "$disk_btrfs_crit$"
                 "-U" = "$disk_btrfs_unallocated$"
                 "-s" = "$disk_btrfs_sudo$"
+                "-m" = "$disk_btrfs_missing$"
+                "-e" = "$disk_btrfs_errors$"
         }
 }
 
