@@ -162,12 +162,23 @@ def main():
     arg_parser.add_argument('-c', '--threshold-critical', type=int, default=90, help="critical threshold in percent")
     arg_parser.add_argument('-V', '--volume', default='/', help="btrfs volume") #TODO support multiple volumes
     arg_parser.add_argument("-v", "--verbose", action="store_true", help="increase output verbosity")
+    arg_parser.add_argument("--btrfs_path", default=None, help="Specify the btrfs path to the executable")
+    arg_parser.add_argument("--sudo_path", default=None, help="Specify the sudo path to the executable")
     args = arg_parser.parse_args(sys.argv[1:])
 
     global verbose
     verbose = args.verbose
 
+    if args.sudo_path is not None:
+        global sudo_path
+        sudo_path = args.sudo_path
+
+    if args.btrfs_path is not None:
+        global btrfs_path
+        btrfs_path = args.btrfs_path
+
     output = run_cmd(args.volume, args.timeout, args.sudo)
+
     if args.unallocated == 1:
         size_overall = get_size_overall(output)
 
