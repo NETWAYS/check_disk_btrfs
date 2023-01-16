@@ -115,7 +115,7 @@ def parse_scrub(output):
             return False
     return True
 
-def check_scrub_error(btrfs_vol, timeout, use_sudo):
+def has_scrub_error(btrfs_vol, timeout, use_sudo):
     output = run_cmd([ btrfs_path, 'scrub', 'stat', btrfs_vol ], timeout, use_sudo)
     return parse_scrub(output)
 
@@ -237,12 +237,12 @@ def main():
     if args.missing:
         is_device_missing = check_missing_device(args.volume, args.timeout, args.sudo)
     
-        if is_device_missing is True:
+        if is_device_missing:
             out = "A device is missing in volume %s" % args.volume
             crit.append(out)
 
     if args.error:
-        scrub_error = check_scrub_error(args.volume, args.timeout, args.sudo)
+        scrub_error = has_scrub_error(args.volume, args.timeout, args.sudo)
         if scrub_error:
             out = "There is scrub error(s) in volume %s" % args.volume
             crit.append(out)
