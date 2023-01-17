@@ -51,7 +51,7 @@ from subprocess import Popen, PIPE
 from argparse import ArgumentParser
 
 VERSION = '3.0.0'
-verbose = True
+VERBOSE = True
 
 class BtrfsCommandError(Exception):
     pass
@@ -67,14 +67,14 @@ def run_cmd(sudo_path, btrfs_path, timeout, use_sudo, cmd):
 
     command += [btrfs_path] + cmd
 
-    if verbose:
+    if VERBOSE:
         print(" ".join(command))
 
     # setup timeout
     signal(SIGALRM, _alarm_handler)
     alarm(timeout)
 
-    p = Popen(command, stdout=PIPE, stderr=PIPE)
+    p = Popen(command, stdout=PIPE, stderr=PIPE) # pylint: disable=consider-using-with
 
     try:
         stdout_data, stderr_data = p.communicate()
@@ -82,7 +82,7 @@ def run_cmd(sudo_path, btrfs_path, timeout, use_sudo, cmd):
         # Terminate the process
         p.kill()
         # Re-throw the exception
-        raise sys.exc_info()[1].with_traceback(sys.exc_info()[2])
+        raise sys.exc_info()[1].with_traceback(sys.exc_info()[2])  # pylint: disable=raise-missing-from
 
     # results in unknown error status
     if p.returncode != 0:
@@ -95,11 +95,11 @@ def run_cmd(sudo_path, btrfs_path, timeout, use_sudo, cmd):
     return stdout_data.decode('utf-8').splitlines()
 
 def check_usage(sudo_path, btrfs_path, btrfs_vol, timeout, use_sudo):
-    return run_cmd(sudo_path,
-                   btrfs_path,
-                   timeout,
-                   use_sudo,
-                   ['filesystem', 'usage', '-b', btrfs_vol])
+    return run_cmd(sudo_path=sudo_path,
+                   btrfs_path=btrfs_path,
+                   timeout=timeout,
+                   use_sudo=use_sudo,
+                   cmd=['filesystem', 'usage', '-b', btrfs_vol])
 
 def parse_missing(output):
     for l in output:
@@ -109,11 +109,11 @@ def parse_missing(output):
 
 def check_missing_device(sudo_path, btrfs_path, btrfs_vol, timeout, use_sudo):
     output = run_cmd(
-        sudo_path,
-        btrfs_path,
-        timeout,
-        use_sudo
-        ['filesystem', 'show', btrfs_vol])
+        sudo_path=sudo_path,
+        btrfs_path=btrfs_path,
+        timeout=timeout,
+        use_sudo=use_sudo,
+        cmd=['filesystem', 'show', btrfs_vol])
 
     return parse_missing(output)
 
@@ -123,13 +123,13 @@ def parse_scrub(output):
             return False
     return True
 
-def check_scrub_error(sudo_path, btrfs_vol, timeout, use_sudo):
+def check_scrub_error(sudo_path, btrfs_path, btrfs_vol, timeout, use_sudo):
     output = run_cmd(
-        sudo_path,
-        btrfs_path,
-        timeout,
-        use_sudo,
-        ['scrub', 'stat', btrfs_vol ])
+        sudo_path=sudo_path,
+        btrfs_path=btrfs_path,
+        timeout=timeout,
+        use_sudo=use_sudo,
+        cmd=['scrub', 'stat', btrfs_vol])
 
     return parse_scrub(output)
 
@@ -155,7 +155,7 @@ def parse_output(output):
         total = m.groups(0)[1]
         used = m.groups(0)[2]
 
-        if verbose:
+        if VERBOSE:
             print("Label: %s, Total: %s, Used: %s" % (label, total, used))
 
         values[label] = (total, used)
@@ -222,8 +222,8 @@ def main(args):
     Main Function
     """
 
-    global verbose
-    verbose = args.verbose
+    global VERBOSE  # pylint: disable=global-statement
+    VERBOSE = args.verbose
 
     output = check_usage(
             sudo_path=args.sudo_path,
@@ -242,7 +242,7 @@ def main(args):
     crit = []
     perfdata = []
 
-    for label in values:
+    for label in values.items():
         (total, used) = values[label]
 
         if float(total) == 0:
@@ -325,10 +325,10 @@ if __name__ == '__main__':
         sys.exit(main(ARGS))
     except SystemExit:
         # Re-throw the exception
-        raise sys.exc_info()[1].with_traceback(sys.exc_info()[2])
+        raise sys.exc_info()[1].with_traceback(sys.exc_info()[2]) # pylint: disable=raise-missing-from
     except:
         print("UNKNOWN - Error: %s" % (str(sys.exc_info()[1])))
-        if verbose:
+        if VERBOSE:
             traceback.print_tb(sys.exc_info()[2])
         sys.exit(3)
 
