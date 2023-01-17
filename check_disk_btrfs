@@ -51,8 +51,8 @@ from subprocess import Popen, PIPE
 from argparse import ArgumentParser
 
 VERSION = '3.0.0'
-sudo_path = os.environ.get('SUDO', "/usr/bin/sudo")
-btrfs_path = os.environ.get('BTRFS', "/usr/sbin/btrfs")
+sudo_path = None
+btrfs_path = None
 verbose = True
 
 class BtrfsCommandError(Exception):
@@ -162,12 +162,17 @@ def main():
     arg_parser.add_argument('-c', '--threshold-critical', type=int, default=90, help="critical threshold in percent")
     arg_parser.add_argument('-V', '--volume', default='/', help="btrfs volume") #TODO support multiple volumes
     arg_parser.add_argument("-v", "--verbose", action="store_true", help="increase output verbosity")
+    arg_parser.add_argument("--btrfs_path", default=os.environ.get("BTRFS", "/usr/sbin/btrfs"), help="Specify the btrfs path to the executable")
+    arg_parser.add_argument("--sudo_path", default=os.environ.get("SUDO", "/usr/bin/sudo"), help="Specify the sudo path to the executable")
     args = arg_parser.parse_args(sys.argv[1:])
 
-    global verbose
+    global verbose, sudo_path, btrfs_path
     verbose = args.verbose
+    sudo_path = args.sudo_path
+    btrfs_path = args.btrfs_path
 
     output = run_cmd(args.volume, args.timeout, args.sudo)
+
     if args.unallocated == 1:
         size_overall = get_size_overall(output)
 
