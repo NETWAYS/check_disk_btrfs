@@ -62,7 +62,7 @@ def _alarm_handler(signum, frame):
 def run_cmd(sudo_path, btrfs_path, timeout, use_sudo, cmd):
     command = []
 
-    if use_sudo == 1:
+    if use_sudo:
         command += [sudo_path]
 
     command += [btrfs_path] + cmd
@@ -192,7 +192,7 @@ def cli(args):
     Defines the CLI Parser and parses the arguments
     """
     arg_parser = ArgumentParser(description= "check_disk_btrfs (Version: %s)" % (VERSION))
-    arg_parser.add_argument('-S', '--sudo', action='store_true', default=True,
+    arg_parser.add_argument('-S', '--sudo', type=int, default=1,
                             help="Use sudo")
     arg_parser.add_argument('-t', '--timeout', type=int, default=30,
                             help="Timeout in seconds for the CheckPlugin (default 30)")

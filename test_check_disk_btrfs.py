@@ -74,10 +74,14 @@ scrub status for <UUID>
 class CLITesting(unittest.TestCase):
 
     def test_cli_arguments(self):
-        actual = btrfs.cli(['--sudo', '-t', '15', '-v'])
+        actual = btrfs.cli(['--sudo', '1', '-t', '15', '-v'])
         self.assertTrue(actual.sudo)
         self.assertEqual(actual.timeout, 15)
         self.assertTrue(actual.verbose)
+
+        actual = btrfs.cli(['--sudo', '0'])
+        self.assertFalse(actual.sudo)
+        self.assertFalse(actual.verbose)
 
 class Testing(unittest.TestCase):
 
