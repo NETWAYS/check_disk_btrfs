@@ -8,7 +8,7 @@ Check BTRFS formatted filesystems and its special attributes.
 Requires Python 3 to be installed (version v2.1.1 is the last `check_disk_btrfs` version running on Python 2)
 
 Requires sudo permissions for the icinga/nagios user executing btrfs command.
-If you are running the plugin with sudo permissions already, set `--sudo` as command line parameter.
+If you are running the plugin with sudo permissions already, set `--sudo=0` as command line parameter.
 
 ```
 icinga ALL=(ALL) NOPASSWD: /usr/sbin/btrfs filesystem usage *
