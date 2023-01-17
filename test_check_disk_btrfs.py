@@ -35,6 +35,42 @@ Unallocated:
    /dev/sdb	8564768768
 """.splitlines()
 
+testdata_device = """
+Label: none  uuid: fdbb50c2-f155-4ef5-9ae8-c3ec57e2bcfd
+	Total devices 2 FS bytes used 128.00KiB
+	devid    1 size 1022.00MiB used 220.00MiB path /dev/nbd0p1
+	devid    2 size 1022.00MiB used 208.00MiB path /dev/nbd1p1
+
+""".splitlines()
+
+testdata_device_missing = """
+Label: none  uuid: fdbb50c2-f155-4ef5-9ae8-c3ec57e2bcfd
+	Total devices 2 FS bytes used 128.00KiB
+	devid    1 size 1022.00MiB used 220.00MiB path /dev/nbd0p1
+	*** Some devices missing
+
+""".splitlines()
+
+testdata_scrub_noerror = """
+UUID:             deb3ff35-a424-4edb-9673-e0514cef2cb0
+Scrub started:    Tue Jan 10 09:58:05 2023
+Status:           finished
+Duration:         2:16:04
+Total to scrub:   1.62TiB
+Rate:             208.45MiB/s
+Error summary:    no errors found
+
+""".splitlines()
+
+testdata_scrub_error = """
+scrub status for <UUID>
+    scrub started at Thu Dec 25 15:19:22 2014 and was aborted after 89882 seconds
+    total bytes scrubbed: 1.87TiB with 4 errors
+    error details: csum=4
+    corrected errors: 0, uncorrectable errors: 4, unverified errors: 0
+
+""".splitlines()
+
 class Testing(unittest.TestCase):
 
     def test_get_size_overall(self):
@@ -51,6 +87,23 @@ class Testing(unittest.TestCase):
         actual = btrfs.find_hr_bytes('8388608', '262144')
         expected = ('MB', 8.0, 0.25)
         self.assertEqual(actual, expected)
+
+    def test_no_missing_device(self):
+        actual = btrfs.parse_missing(testdata_device)
+        self.assertFalse(actual)
+
+    def test_missing_device(self):
+        actual = btrfs.parse_missing(testdata_device_missing)
+        self.assertTrue(actual)
+
+    def test_scrub_no_error(self):
+        actual = btrfs.parse_scrub(testdata_scrub_noerror)
+        self.assertFalse(actual)
+
+    def test_scrub_error(self):
+        actual = btrfs.parse_scrub(testdata_scrub_error)
+        self.assertTrue(actual)
+
 
 if __name__ == '__main__':
     unittest.main()
