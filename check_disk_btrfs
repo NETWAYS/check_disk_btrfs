@@ -50,7 +50,7 @@ from signal import signal, alarm, SIGALRM
 from subprocess import Popen, PIPE
 from argparse import ArgumentParser
 
-VERSION = '3.0.0'
+VERSION = '3.1.0'
 VERBOSE = True
 
 class BtrfsCommandError(Exception):
@@ -192,28 +192,38 @@ def cli(args):
     Defines the CLI Parser and parses the arguments
     """
     arg_parser = ArgumentParser(description= "check_disk_btrfs (Version: %s)" % (VERSION))
-    arg_parser.add_argument('-S', '--sudo', type=int, default=1,
-                            help="Use sudo")
+
+    arg_parser.add_argument('-S', '--sudo', action='store_true',
+                        help="Use sudo (default True)")
+    arg_parser.add_argument('--no-sudo', dest='sudo', action='store_false',
+                        help="Disable sudo use")
+
+    arg_parser.add_argument('-U', '--unallocated', action='store_true',
+                            help="Consider unallocated blocks by using overall size as total (Default True)")
+    arg_parser.add_argument('--no-unallocated', dest='unallocated', action='store_false',
+                            help="Do not consider unallocated blocks")
+
     arg_parser.add_argument('-t', '--timeout', type=int, default=30,
                             help="Timeout in seconds for the CheckPlugin (default 30)")
-    arg_parser.add_argument('-U', '--unallocated', action='store_true', default=True,
-                            help="Consider unallocated blocks by using overall size as total")
     arg_parser.add_argument('-w', '--threshold-warning', type=int, default=80,
-                            help="Warning threshold in percent")
+                            help="Warning threshold in percent (Default 80)")
     arg_parser.add_argument('-c', '--threshold-critical', type=int, default=90,
-                            help="Critical threshold in percent")
+                            help="Critical threshold in percent (Default 90)")
     arg_parser.add_argument('-V', '--volume', default='/',
-                            help="Path to the Btrfs volume")
+                            help="Path to the Btrfs volume (Default /)")
     arg_parser.add_argument("-v", "--verbose", action="store_true",
                             help="Increase verbosity")
     arg_parser.add_argument("--btrfs-path", default=os.environ.get("BTRFS", "/usr/sbin/btrfs"),
-                            help="Specify the btrfs path to the executable")
+                            help="Specify the btrfs path to the executable (Default /usr/sbin/btrfs")
     arg_parser.add_argument("--sudo-path", default=os.environ.get("SUDO", "/usr/bin/sudo"),
-                            help="Specify the sudo path to the executable")
+                            help="Specify the sudo path to the executable (Default /usr/bin/sudo)")
     arg_parser.add_argument("-m", "--missing", action="store_true",
                             help="Check for missing devices in RAID array")
     arg_parser.add_argument("-e", "--error", action="store_true",
                             help="Check for scrub errors in device")
+
+    arg_parser.set_defaults(sudo=True)
+    arg_parser.set_defaults(unallocated=True)
 
     return arg_parser.parse_args(args)
 
@@ -232,7 +242,7 @@ def main(args):
             timeout=args.timeout,
             use_sudo=args.sudo)
 
-    if args.unallocated == 1:
+    if args.unallocated:
         size_overall = get_size_overall(output)
 
     values = parse_output(output)

@@ -19,15 +19,20 @@ Requires the `btrfs-tools` packages to be installed (the package name may change
 ## Usage
 
 ```bash
-usage: check_disk_btrfs [-h] [-S] [-t TIMEOUT] [-U] [-w THRESHOLD_WARNING] [-c THRESHOLD_CRITICAL] [-V VOLUME] [-v]
-                        [--btrfs-path BTRFS_PATH] [--sudo-path SUDO_PATH] [-m] [-e]
+usage: check_disk_btrfs [-h] [--sudo] [--no-sudo] [-t TIMEOUT] [-U] [-w THRESHOLD_WARNING]
+                        [-c THRESHOLD_CRITICAL] [-V VOLUME] [-v] [--btrfs-path BTRFS_PATH]
+                        [--sudo-path SUDO_PATH] [-m] [-e]
 
-options:
+check_disk_btrfs (Version: 3.1.0)
+
+optional arguments:
   -h, --help            show this help message and exit
-  -S, --sudo            Use sudo
+  -S, --sudo            Use sudo (default True)
+  --no-sudo             Disable sudo use
   -t TIMEOUT, --timeout TIMEOUT
                         Timeout in seconds for the CheckPlugin (default 30)
-  -U, --unallocated     Consider unallocated blocks by using overall size as total
+  -U, --unallocated     Consider unallocated blocks by using overall size as total (Default True)
+  --no-unallocated      Do not consider unallocated blocks
   -w THRESHOLD_WARNING, --threshold-warning THRESHOLD_WARNING
                         Warning threshold in percent
   -c THRESHOLD_CRITICAL, --threshold-critical THRESHOLD_CRITICAL
@@ -49,7 +54,6 @@ Path to the `sudo` and `btrfs` binaries can be also adjusted using Environment V
 SUDO=/usr/bin/sudo
 BTRFS=/usr/sbin/btrfs
 ```
-
 
 Example:
 
