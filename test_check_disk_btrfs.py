@@ -13,6 +13,8 @@ from check_disk_btrfs import parse_output
 from check_disk_btrfs import parse_scrub
 from check_disk_btrfs import parse_missing
 from check_disk_btrfs import find_hr_bytes
+from check_disk_btrfs import run_cmd
+from check_disk_btrfs import main
 
 testdata_fs_usage = """
 Overall:
@@ -125,6 +127,49 @@ class UtilTesting(unittest.TestCase):
     def test_scrub_error(self):
         actual = parse_scrub(testdata_scrub_error)
         self.assertTrue(actual)
+
+
+class RunTesting(unittest.TestCase):
+
+    @mock.patch('check_disk_btrfs.Popen')
+    def test_run_test(self, mock_open):
+
+        c = mock.MagicMock()
+        c.communicate.return_value = (b'unit\ntest', b'stderr')
+        c.returncode = 0
+        mock_open.return_value = c
+
+        expected = ['unit', 'test']
+        actual = run_cmd('/sudo', '/mydisk', 10, True, ['filesystem', 'show', '/mydisk'])
+
+        self.assertEqual(actual, expected)
+
+    @mock.patch('check_disk_btrfs.Popen')
+    def test_run_test_runtimeerror(self, mock_open):
+
+        c = mock.MagicMock()
+        c.communicate.return_value = (b'stdout', b'stderr')
+        c.returncode = 2
+        mock_open.return_value = c
+
+        with self.assertRaises(RuntimeError) as context:
+            run_cmd('/sudo', '/mydisk', 10, True, ['filesystem', 'show', '/mydisk'])
+
+
+class MainTesting(unittest.TestCase):
+
+    @mock.patch('check_disk_btrfs.check_usage')
+    @mock.patch('check_disk_btrfs.check_missing_device')
+    @mock.patch('check_disk_btrfs.check_scrub_error')
+    def test_main(self, mock_scrub, mock_miss, mock_use):
+        mock_scrub.return_value = {}
+        mock_miss.return_value = {}
+        mock_use.return_value = {}
+
+        args = cli(['--sudo', '-c', '1', '-v'])
+        actual = main(args)
+
+        self.assertEqual(actual, 0)
 
 
 if __name__ == '__main__':

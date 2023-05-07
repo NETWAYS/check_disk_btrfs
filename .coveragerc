@@ -1,5 +1,3 @@
 [report]
 show_missing = True
 omit = test_*
-exclude_lines =
-    if __name__ == .__main__.:

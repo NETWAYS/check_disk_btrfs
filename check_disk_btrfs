@@ -329,7 +329,7 @@ def main(args):
     print("%s | %s" % (out_str, " ".join(perfdata)))
     return exit_code
 
-if __name__ == '__main__':
+if __name__ == '__main__': # pragma: no cover
     try:
         ARGS = cli(sys.argv[1:])
         sys.exit(main(ARGS))
