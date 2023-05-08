@@ -1,14 +1,20 @@
+#!/usr/bin/env python3
+
 import unittest
+import unittest.mock as mock
+import sys
 
-import importlib.machinery
-import importlib.util
+sys.path.append('..')
 
-# Import check_disk_btrfs script as module
-loader = importlib.machinery.SourceFileLoader('btrfs', 'check_disk_btrfs')
-spec = importlib.util.spec_from_loader('btrfs', loader)
-btrfs = importlib.util.module_from_spec(spec)
-loader.exec_module(btrfs)
 
+from check_disk_btrfs import cli
+from check_disk_btrfs import get_size_overall
+from check_disk_btrfs import parse_output
+from check_disk_btrfs import parse_scrub
+from check_disk_btrfs import parse_missing
+from check_disk_btrfs import find_hr_bytes
+from check_disk_btrfs import run_cmd
+from check_disk_btrfs import main
 
 testdata_fs_usage = """
 Overall:
@@ -74,47 +80,96 @@ scrub status for <UUID>
 class CLITesting(unittest.TestCase):
 
     def test_cli_arguments(self):
-        actual = btrfs.cli(['--sudo', '1', '-t', '15', '-v'])
+        actual = cli(['--sudo', '-t', '15', '-v'])
         self.assertTrue(actual.sudo)
         self.assertEqual(actual.timeout, 15)
         self.assertTrue(actual.verbose)
 
-        actual = btrfs.cli(['--sudo', '0'])
+        actual = cli(['--no-sudo'])
         self.assertFalse(actual.sudo)
         self.assertFalse(actual.verbose)
 
-class Testing(unittest.TestCase):
+        actual = cli(['--unallocated'])
+        self.assertTrue(actual.unallocated)
+
+        actual = cli(['--no-unallocated'])
+        self.assertFalse(actual.unallocated)
+
+class UtilTesting(unittest.TestCase):
 
     def test_get_size_overall(self):
-        actual = btrfs.get_size_overall(testdata_fs_usage)
+        actual = get_size_overall(testdata_fs_usage)
         expected = '10737418240'
         self.assertEqual(actual, expected)
 
     def test_parse_output(self):
-        actual = btrfs.parse_output(testdata_fs_usage)
+        actual = parse_output(testdata_fs_usage)
         expected = {'Data,single': ('8388608', '262144'), 'Metadata,DUP': ('1073741824', '114688'), 'System,DUP': ('8388608', '16384')}
         self.assertEqual(actual, expected)
 
     def test_find_hr_bytes(self):
-        actual = btrfs.find_hr_bytes('8388608', '262144')
+        actual = find_hr_bytes('8388608', '262144')
         expected = ('MB', 8.0, 0.25)
         self.assertEqual(actual, expected)
 
     def test_no_missing_device(self):
-        actual = btrfs.parse_missing(testdata_device)
+        actual = parse_missing(testdata_device)
         self.assertFalse(actual)
 
     def test_missing_device(self):
-        actual = btrfs.parse_missing(testdata_device_missing)
+        actual = parse_missing(testdata_device_missing)
         self.assertTrue(actual)
 
     def test_scrub_no_error(self):
-        actual = btrfs.parse_scrub(testdata_scrub_noerror)
+        actual = parse_scrub(testdata_scrub_noerror)
         self.assertFalse(actual)
 
     def test_scrub_error(self):
-        actual = btrfs.parse_scrub(testdata_scrub_error)
+        actual = parse_scrub(testdata_scrub_error)
         self.assertTrue(actual)
+
+
+class RunTesting(unittest.TestCase):
+
+    @mock.patch('check_disk_btrfs.Popen')
+    def test_run_test(self, mock_open):
+
+        c = mock.MagicMock()
+        c.communicate.return_value = (b'unit\ntest', b'stderr')
+        c.returncode = 0
+        mock_open.return_value = c
+
+        expected = ['unit', 'test']
+        actual = run_cmd('/sudo', '/mydisk', 10, True, ['filesystem', 'show', '/mydisk'])
+
+        self.assertEqual(actual, expected)
+
+    @mock.patch('check_disk_btrfs.Popen')
+    def test_run_test_runtimeerror(self, mock_open):
+
+        c = mock.MagicMock()
+        c.communicate.return_value = (b'stdout', b'stderr')
+        c.returncode = 2
+        mock_open.return_value = c
+
+        with self.assertRaises(RuntimeError) as context:
+            run_cmd('/sudo', '/mydisk', 10, True, ['filesystem', 'show', '/mydisk'])
+
+
+class MainTesting(unittest.TestCase):
+
+    @mock.patch('check_disk_btrfs.check_usage')
+    @mock.patch('check_disk_btrfs.check_missing_device')
+    @mock.patch('check_disk_btrfs.check_scrub_error')
+    def test_main(self, mock_scrub, mock_miss, mock_use):
+        mock_scrub.return_value = {}
+        mock_miss.return_value = {}
+        mock_use.return_value = {}
+
+        args = cli(['--sudo', '-c', '1', '-v'])
+        actual = main(args)
+
+        self.assertEqual(actual, 0)
 
 
 if __name__ == '__main__':
