@@ -50,7 +50,7 @@ from signal import signal, alarm, SIGALRM
 from subprocess import Popen, PIPE
 from argparse import ArgumentParser
 
-VERSION = '3.1.0'
+VERSION = '3.1.1'
 VERBOSE = True
 
 class BtrfsCommandError(Exception):

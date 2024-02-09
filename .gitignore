@@ -2,3 +2,11 @@
 venv/
 __pycache__/
 .coverage
+
+# Editors
+.*.sw[op]
+*~
+/.idea/
+\#*
+.\#*
+*TODO*
