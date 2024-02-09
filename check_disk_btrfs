@@ -252,8 +252,8 @@ def main(args):
     crit = []
     perfdata = []
 
-    for label in values.items():
-        (total, used) = values[label]
+    for label, value in values.items():
+        (total, used) = value
 
         if float(total) == 0:
             continue

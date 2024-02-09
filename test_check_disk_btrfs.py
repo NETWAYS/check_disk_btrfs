@@ -77,6 +77,39 @@ scrub status for <UUID>
 
 """.splitlines()
 
+
+testdata_issue_13 = """
+Overall:
+    Device size:                     4000797868032
+    Device allocated:                 942829207552
+    Device unallocated:              3057968660480
+    Device missing:                              0
+    Device slack:                                0
+    Used:                             934821470208
+    Free (estimated):                1531379535872      (min: 1531379535872)
+    Free (statfs, df):               1531378462720
+    Data ratio:                               2.00
+    Metadata ratio:                           2.00
+    Global reserve:                      485900288      (used: 0)
+    Multiple profiles:                          no
+
+Data,RAID1: Size:469225177088, Used:466829971456 (99.49%)
+   /dev/sda     469225177088
+   /dev/sdb     469225177088
+
+Metadata,RAID1: Size:2147483648, Used:580681728 (27.04%)
+   /dev/sda     2147483648
+   /dev/sdb     2147483648
+
+System,RAID1: Size:41943040, Used:81920 (0.20%)
+   /dev/sda       41943040
+   /dev/sdb       41943040
+
+Unallocated:
+   /dev/sda     1528984330240
+   /dev/sdb     1528984330240
+""".splitlines()
+
 class CLITesting(unittest.TestCase):
 
     def test_cli_arguments(self):
@@ -128,6 +161,10 @@ class UtilTesting(unittest.TestCase):
         actual = parse_scrub(testdata_scrub_error)
         self.assertTrue(actual)
 
+    def test_parse_output_issue_13(self):
+        actual = parse_output(testdata_issue_13)
+        expected = {'Data,RAID1': ('469225177088', '466829971456'), 'Metadata,RAID1': ('2147483648', '580681728'), 'System,RAID1': ('41943040', '81920')}
+        self.assertEqual(actual, expected)
 
 class RunTesting(unittest.TestCase):
 
@@ -171,6 +208,19 @@ class MainTesting(unittest.TestCase):
 
         self.assertEqual(actual, 0)
 
+
+    @mock.patch('check_disk_btrfs.check_usage')
+    @mock.patch('check_disk_btrfs.check_missing_device')
+    @mock.patch('check_disk_btrfs.check_scrub_error')
+    def test_main_issue_13(self, mock_scrub, mock_miss, mock_use):
+        mock_scrub.return_value = {}
+        mock_miss.return_value = {}
+        mock_use.return_value = testdata_issue_13
+
+        args = cli(['--no-sudo', '-w', '30', '-c', '40', '-v', '--missing', '--error'])
+        actual = main(args)
+
+        self.assertEqual(actual, 0)
 
 if __name__ == '__main__':
     unittest.main()
