@@ -163,6 +163,10 @@ def parse_output(output):
     return values
 
 def find_hr_bytes(total, used):
+    """
+    Calculate usage.
+    Currently unused since we switched to simply calculating a usage in percentage
+    """
     val = float(total)
     byte_c = 0
     hr_label = "B"
@@ -199,9 +203,7 @@ def cli(args):
                         help="Disable sudo use")
 
     arg_parser.add_argument('-U', '--unallocated', action='store_true',
-                            help="Consider unallocated blocks by using overall size as total (Default True)")
-    arg_parser.add_argument('--no-unallocated', dest='unallocated', action='store_false',
-                            help="Do not consider unallocated blocks")
+                            help="Consider unallocated blocks by using overall size as total")
 
     arg_parser.add_argument('-t', '--timeout', type=int, default=30,
                             help="Timeout in seconds for the CheckPlugin (default 30)")
@@ -223,7 +225,6 @@ def cli(args):
                             help="Check for scrub errors in device")
 
     arg_parser.set_defaults(sudo=True)
-    arg_parser.set_defaults(unallocated=True)
 
     return arg_parser.parse_args(args)
 
@@ -242,9 +243,6 @@ def main(args):
             timeout=args.timeout,
             use_sudo=args.sudo)
 
-    if args.unallocated:
-        size_overall = get_size_overall(output)
-
     values = parse_output(output)
 
     ok = []
@@ -259,16 +257,13 @@ def main(args):
             continue
 
         # if we want to consider unallocated blocks, we have to set total to overall size
-        try:
-            total = size_overall
-        except NameError:
-            pass
+        if args.unallocated:
+            total = get_size_overall(output)
 
-        used_perc = round(float(used) / float(total) * 100, 5)
+        used_perc = round(int(used) / int(total) * 100, 2)
 
-        hr_label, hr_total, hr_used = find_hr_bytes(total, used)
+        out = "'{}': {:.2f}% used".format(label, used_perc)
 
-        out = "'%s': %s%% used (%s%s/%s%s)" % (label, used_perc, hr_used, hr_label, hr_total, hr_label)
         perf_label = label.lower().replace(" ", "_").replace(",", "")
         perf = "%s_used=%s;%s;%s;; %s_total=%s;%s;%s;;" % (perf_label, used, args.threshold_warning, args.threshold_critical, perf_label, total, args.threshold_warning, args.threshold_critical)
 

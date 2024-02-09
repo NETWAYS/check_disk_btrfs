@@ -35,8 +35,7 @@ optional arguments:
   --no-sudo             Disable sudo use
   -t TIMEOUT, --timeout TIMEOUT
                         Timeout in seconds for the CheckPlugin (default 30)
-  -U, --unallocated     Consider unallocated blocks by using overall size as total (Default True)
-  --no-unallocated      Do not consider unallocated blocks
+  -U, --unallocated     Consider unallocated blocks by using overall size as total
   -w THRESHOLD_WARNING, --threshold-warning THRESHOLD_WARNING
                         Warning threshold in percent
   -c THRESHOLD_CRITICAL, --threshold-critical THRESHOLD_CRITICAL
@@ -64,11 +63,7 @@ Example:
 ```
 check_disk_btrfs -V / -w 30 -c 40
 
-CRITICAL: 'Data, single': 47.59051% used (0.0GB/2.0GB) OK: 'System, single': 0.39063% used (0.0MB/4.0MB),
-'GlobalReserve, single': 0.0% used (0.0MB/16.0MB), 'Metadata, single': 16.41809% used (43.0MB/264.0MB)
-| data_single_used=1025990656;30;40;; data_single_total=2155872256;30;40;; system_single_used=16384;30;40;;
-system_single_total=4194304;30;40;; globalreserve_single_used=0;30;40;; globalreserve_single_total=16777216;30;40;;
-metadata_single_used=45449216;30;40;; metadata_single_total=276824064;30;40;;
+CRITICAL: 'Data,RAID1': 99.49% used OK: 'Metadata,RAID1': 27.04% used, 'System,RAID1': 0.20% used | dataraid1_used=466829971456;30;40;; dataraid1_total=469225177088;30;40;; metadataraid1_used=580681728;30;40;; metadataraid1_total=2147483648;30;40;; systemraid1_used=81920;30;40;; systemraid1_total=41943040;30;40;;
 ```
 
 ## Icinga 2 Integration
@@ -85,7 +80,6 @@ object CheckCommand "disk_btrfs" {
                 "-V" = "$disk_btrfs_volume$"
                 "-w" = "$disk_btrfs_warn$"
                 "-c" = "$disk_btrfs_crit$"
-                "-U" = "$disk_btrfs_unallocated$"
                 "-s" = "$disk_btrfs_sudo$"
                 "-m" = "$disk_btrfs_missing$"
                 "-e" = "$disk_btrfs_errors$"

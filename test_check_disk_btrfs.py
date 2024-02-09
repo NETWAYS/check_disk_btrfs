@@ -117,6 +117,7 @@ class CLITesting(unittest.TestCase):
         self.assertTrue(actual.sudo)
         self.assertEqual(actual.timeout, 15)
         self.assertTrue(actual.verbose)
+        self.assertFalse(actual.unallocated)
 
         actual = cli(['--no-sudo'])
         self.assertFalse(actual.sudo)
@@ -124,9 +125,6 @@ class CLITesting(unittest.TestCase):
 
         actual = cli(['--unallocated'])
         self.assertTrue(actual.unallocated)
-
-        actual = cli(['--no-unallocated'])
-        self.assertFalse(actual.unallocated)
 
 class UtilTesting(unittest.TestCase):
 
@@ -220,7 +218,7 @@ class MainTesting(unittest.TestCase):
         args = cli(['--no-sudo', '-w', '30', '-c', '40', '-v', '--missing', '--error'])
         actual = main(args)
 
-        self.assertEqual(actual, 0)
+        self.assertEqual(actual, 2)
 
 if __name__ == '__main__':
     unittest.main()
