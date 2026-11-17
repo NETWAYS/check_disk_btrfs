@@ -260,7 +260,7 @@ def main(args):
 
         # if we want to consider unallocated blocks, we have to set total to overall size
         try:
-            total = size_overall
+            total = size_overall # pylint: disable=possibly-used-before-assignment
         except NameError:
             pass
 
